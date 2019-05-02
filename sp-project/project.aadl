@@ -1,0 +1,121 @@
+package project
+public
+	subprogram Lane_Keeper
+		properties
+			Source_Language => (Java);
+			Source_Name => "name";
+			Source_Text => ("LaneKeeper.java");
+	end Lane_Keeper;
+	thread Task
+		properties
+			Priority => 1;
+			Dispatch_Protocol => Periodic;
+			Period => 100ms;
+			Compute_Execution_Time => 0ms .. 3ms;
+			Compute_Entrypoint => classifier (Lane_Keeper);
+	end Task;
+	
+	process node_a
+		features
+			speed_in: in event port;
+			optical_in: in event port;
+			turn_signal_in: in event port;
+			sound_out: out event port;
+			visual_out: out event port;
+			vibratuion_out: out event port;
+			electronic_system_out: out event port;
+	end node_a;
+	
+	process implementation node_a.impl
+		subcomponents
+			Task1 : thread Task;
+	end node_a.imp1;
+	
+	processor cpu
+		properties
+			Scheduling_Protocol => (RMS);
+	end cpu;
+	
+	system rma
+	end rma;
+	
+	system implementation rma.impl
+		subcomponents
+			speed_sensor : device SpeedSensor;
+			optical_sensor : device OpticalSensor;
+			turn_signal_sensor : device TurnSignalSensor;
+			sound_alarm : device SoundAlarm;
+			visual_alarm : device VisualAlarm;
+			vibration_alarm : device VibrationAlarm;
+			electronic_steering_system : device ElectronicSteeringSystem;
+			node_a : process node_a.impl;
+			cpu : processor cpu;
+		connections
+			speed_conn: port speed_sensor.speed_limit_exceeded -> node_a.speed_in;
+			optical_conn: port optical_sensor.line_detected -> node_a.optical_in;
+			turn_signal_conn: port turn_signal_sensor.turn_signal_detected -> node_a.turn_signal_in;
+			sound_conn: port node_a.sound_out -> sound_alarm.toggle_sound_alarm;
+			visual_conn: port node_a.visual_out -> visual_alarm.toggle_visual_alarm;
+			vibration_conn: port node_a.vibratuion_out -> vibration_alarm.toggle_vibration_alarm;
+			electronic_system_conn: port node_a.electronic_system_out -> electronic_steering_system.toggle_electronic_steering_system;
+		properties
+			Actual_Processor_Binding => (reference (cpu)) applies to node_a;
+	end rma.impl;
+	
+	device SpeedSensor
+		features
+			speed_limit_exceeded: out event port;
+	end SpeedSensor;
+	
+	device implementation SpeedSensor.impl
+	end SpeedSensor.impl;	
+	
+	device OpticalSensor
+		features
+			line_detected: out event port;
+	end OpticalSensor;
+	
+	device implementation OpticalSensor.impl
+	end OpticalSensor.impl;
+	
+	device TurnSignalSensor
+		features
+			turn_signal_detected: out event port;
+	end TurnSignalSensor;
+	
+	device implementation TurnSignalSensor.impl
+	end TurnSignalSensor.impl;
+	
+	device SoundAlarm
+		features
+			toggle_sound_alarm: in event port;
+	end SoundAlarm;
+	
+	device implementation SoundAlarm.impl
+	end SoundAlarm.impl;
+	
+	device VisualAlarm
+		features
+			toggle_visual_alarm: in event port;
+	end VisualAlarm;
+	
+	device implementation VisualAlarm.impl
+	end VisualAlarm.impl;
+	
+	device VibrationAlarm
+		features
+			toggle_vibration_alarm: in event port;
+	end VibrationAlarm;
+	
+	device implementation VibrationAlarm.impl
+	end VibrationAlarm.impl;
+	
+	device ElectronicSteeringSystem
+		features
+			toggle_electronic_steering_system: in event port;
+	end ElectronicSteeringSystem;
+	
+	device implementation ElectronicSteeringSystem.impl
+	end ElectronicSteeringSystem.impl;
+
+end project;
