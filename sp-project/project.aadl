@@ -6,40 +6,112 @@ public
 			Source_Name => "name";
 			Source_Text => ("LaneKeeper.java");
 	end Lane_Keeper;
-	thread Task
-		properties
-			Priority => 1;
-			Dispatch_Protocol => Periodic;
-			Period => 100ms;
-			Compute_Execution_Time => 0ms .. 3ms;
-			Compute_Entrypoint => classifier (Lane_Keeper);
-	end Task;
 	
-	process node_a
+	thread ReadSpeed
+		features
+			speed_in: in event port;
+			speed_out: out event port;
+	end ReadSpeed;
+	
+	thread implementation ReadSpeed.impl
+	end ReadSpeed.impl;
+	
+	thread ReadOptical
+		features
+			optical_in: in event port;
+			optical_out: out event port;
+	end ReadOptical;
+	
+	thread implementation ReadOptical.impl
+	end ReadOptical.impl;
+	
+	thread ReadTurnSignal
+		features
+			turn_signal_in: in event port;
+			turn_signal_out: out event port;
+	end ReadTurnSignal;
+	
+	thread implementation ReadTurnSignal.impl
+	end ReadTurnSignal.impl;
+	
+	thread ControlAlarms
+		features
+			speed_in: in event port;
+			optical_in: in event port;
+			turn_signal_in: in event port;
+			alarm_signal: out event port;
+	end ControlAlarms;
+	
+	thread implementation ControlAlarms.impl
+	end ControlAlarms.impl;
+	
+	thread ControlElectronicSystem
+		
+	end ControlElectronicSystem;
+	
+	thread implementation ControlElectronicSystem.impl
+	end ControlElectronicSystem.impl;
+	
+	process Controller
 		features
 			speed_in: in event port;
 			optical_in: in event port;
 			turn_signal_in: in event port;
 			sound_out: out event port;
 			visual_out: out event port;
-			vibratuion_out: out event port;
+			vibration_out: out event port;
 			electronic_system_out: out event port;
-	end node_a;
+	end Controller;
 	
-	process implementation node_a.impl
+	process implementation Controller.impl
 		subcomponents
-			Task1 : thread Task;
-	end node_a.imp1;
+			read_speed : thread ReadSpeed.impl;
+			read_optical: thread ReadOptical.impl;
+			read_turn_signal: thread ReadTurnSignal.impl;
+			control_alarms: thread ControlAlarms.impl;
+			control_electronic_system: thread ControlElectronicSystem.impl;
+			
+		connections
+			speed_thread_conn: port speed_in -> read_speed.speed_in;
+			optical_thread_conn: port optical_in -> read_optical.optical_in;
+			turn_signal_thread_conn: port turn_signal_in -> read_turn_signal.turn_signal_in;
+			
+			speed_control_conn: port read_speed.speed_out -> control_alarms.speed_in;
+			optical_control_conn: port read_optical.optical_out -> control_alarms.optical_in;
+			turn_signal_control_conn: port read_turn_signal.turn_signal_out -> control_alarms.turn_signal_in;
+			
+			alarm_sound_out_conn: port control_alarms.alarm_signal -> sound_out;
+			alarm_visual_out_conn: port control_alarms.alarm_signal -> visual_out;
+			alarm_vibration_out_conn: port control_alarms.alarm_signal -> vibration_out;
+			
+			
+	end Controller.impl;
 	
 	processor cpu
+		features
+			bus_access: requires bus access HWConnection;
 		properties
 			Scheduling_Protocol => (RMS);
 	end cpu;
 	
-	system rma
-	end rma;
+	processor implementation cpu.impl
+		subcomponents
+			ram : memory Ram;
+	end cpu.impl;
 	
-	system implementation rma.impl
+	memory Ram
+	end Ram;
+	
+	bus HWConnection
+	end HWConnection;
+	
+	bus implementation HWConnection.impl
+	end HWConnection.impl;
+	
+	system LaneChangeDetectionSystem
+	end LaneChangeDetectionSystem;
+	
+	system implementation LaneChangeDetectionSystem.impl
 		subcomponents
 			speed_sensor : device SpeedSensor;
 			optical_sensor : device OpticalSensor;
@@ -48,23 +120,35 @@ public
 			visual_alarm : device VisualAlarm;
 			vibration_alarm : device VibrationAlarm;
 			electronic_steering_system : device ElectronicSteeringSystem;
-			node_a : process node_a.impl;
-			cpu : processor cpu;
+			Controller : process Controller.impl;
+			cpu : processor cpu.impl;
+			bus_impl : bus HWConnection.impl;
+			
 		connections
-			speed_conn: port speed_sensor.speed_limit_exceeded -> node_a.speed_in;
-			optical_conn: port optical_sensor.line_detected -> node_a.optical_in;
-			turn_signal_conn: port turn_signal_sensor.turn_signal_detected -> node_a.turn_signal_in;
-			sound_conn: port node_a.sound_out -> sound_alarm.toggle_sound_alarm;
-			visual_conn: port node_a.visual_out -> visual_alarm.toggle_visual_alarm;
-			vibration_conn: port node_a.vibratuion_out -> vibration_alarm.toggle_vibration_alarm;
-			electronic_system_conn: port node_a.electronic_system_out -> electronic_steering_system.toggle_electronic_steering_system;
+			speed_conn: port speed_sensor.speed_limit_exceeded -> Controller.speed_in;
+			optical_conn: port optical_sensor.line_detected -> Controller.optical_in;
+			turn_signal_conn: port turn_signal_sensor.turn_signal_detected -> Controller.turn_signal_in;
+			sound_conn: port Controller.sound_out -> sound_alarm.toggle_sound_alarm;
+			visual_conn: port Controller.visual_out -> visual_alarm.toggle_visual_alarm;
+			vibration_conn: port Controller.vibration_out -> vibration_alarm.toggle_vibration_alarm;
+			electronic_system_conn: port Controller.electronic_system_out -> electronic_steering_system.toggle_electronic_steering_system;
+			
+			bus_speed: bus access bus_impl -> speed_sensor.bus_access;
+			bus_optical: bus access bus_impl -> optical_sensor.bus_access;
+			bus_turn_signal: bus access bus_impl -> turn_signal_sensor.bus_access;
+			bus_sound: bus access bus_impl -> sound_alarm.bus_access;
+			bus_visual: bus access bus_impl -> visual_alarm.bus_access;
+			bus_vibration: bus access bus_impl -> vibration_alarm.bus_access;
+			bus_electronic_system: bus access bus_impl -> electronic_steering_system.bus_access;
+			bus_processor: bus access bus_impl -> cpu.bus_access;
 		properties
-			Actual_Processor_Binding => (reference (cpu)) applies to node_a;
-	end rma.impl;
+			Actual_Processor_Binding => (reference (cpu)) applies to Controller;
+	end LaneChangeDetectionSystem.impl;
 	
 	device SpeedSensor
 		features
 			speed_limit_exceeded: out event port;
+			bus_access: requires bus access HWConnection;
 	end SpeedSensor;
 	
 	device implementation SpeedSensor.impl
@@ -73,6 +157,7 @@ public
 	device OpticalSensor
 		features
 			line_detected: out event port;
+			bus_access: requires bus access HWConnection;
 	end OpticalSensor;
 	
 	device implementation OpticalSensor.impl
@@ -81,6 +166,7 @@ public
 	device TurnSignalSensor
 		features
 			turn_signal_detected: out event port;
+			bus_access: requires bus access HWConnection;
 	end TurnSignalSensor;
 	
 	device implementation TurnSignalSensor.impl
@@ -89,6 +175,7 @@ public
 	device SoundAlarm
 		features
 			toggle_sound_alarm: in event port;
+			bus_access: requires bus access HWConnection;
 	end SoundAlarm;
 	
 	device implementation SoundAlarm.impl
@@ -97,6 +184,7 @@ public
 	device VisualAlarm
 		features
 			toggle_visual_alarm: in event port;
+			bus_access: requires bus access HWConnection;
 	end VisualAlarm;
 	
 	device implementation VisualAlarm.impl
@@ -105,6 +193,7 @@ public
 	device VibrationAlarm
 		features
 			toggle_vibration_alarm: in event port;
+			bus_access: requires bus access HWConnection;
 	end VibrationAlarm;
 	
 	device implementation VibrationAlarm.impl
@@ -113,6 +202,7 @@ public
 	device ElectronicSteeringSystem
 		features
 			toggle_electronic_steering_system: in event port;
+			bus_access: requires bus access HWConnection;
 	end ElectronicSteeringSystem;
 	
 	device implementation ElectronicSteeringSystem.impl
