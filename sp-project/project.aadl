@@ -1,6 +1,6 @@
 package project
 public	
-	// wątki kontrolujące sensory prędkości, wizji oraz kierunkowskazu
+	-- watki kontrolujace sensory predkosci, wizji oraz kierunkowskazu
 
 	thread ReadSpeed
 		features
@@ -29,7 +29,7 @@ public
 	thread implementation ReadTurnSignal.impl
 	end ReadTurnSignal.impl;
 	
-	// wątek kontrolujący alarmy
+	-- watek kontrolujacy alarmu
 	
 	thread ControlAlarms
 		features
@@ -42,18 +42,18 @@ public
 	thread implementation ControlAlarms.impl
 	end ControlAlarms.impl;
 	
-	// watek kontrolujący elektroniczny system kierowania
+	-- watek kontrolujacy elektroniczny system kierowania
 	
 	thread ControlElectronicSystem
 		features
-			in: in event port;
-			out: out event port;
+			ec_in: in event port;
+			ec_out: out event port;
 	end ControlElectronicSystem;
 	
 	thread implementation ControlElectronicSystem.impl
 	end ControlElectronicSystem.impl;
 	
-	// kontroler łączący sygnały z odpowiednimi wątkami
+	-- kontroler laczacy sygnal z odpowiednimi watkami
 	
 	process Controller
 		features
@@ -82,17 +82,16 @@ public
 			speed_control_conn: port read_speed.speed_out -> control_alarms.speed_in;
 			optical_control_conn: port read_optical.optical_out -> control_alarms.optical_in;
 			turn_signal_control_conn: port read_turn_signal.turn_signal_out -> control_alarms.turn_signal_in;
-			electronic_system_control_conn: port control_alarms.alarm_signal -> control_electronic_system.in;
+			electronic_system_control_conn: port control_alarms.alarm_signal -> control_electronic_system.ec_in;
 			
 			alarm_sound_out_conn: port control_alarms.alarm_signal -> sound_out;
 			alarm_visual_out_conn: port control_alarms.alarm_signal -> visual_out;
 			alarm_vibration_out_conn: port control_alarms.alarm_signal -> vibration_out;
-			electronic_system_control_out_conn: port control_electronic_system.out -> electronic_system_out;
-			
-			
+			electronic_system_control_out_conn: port control_electronic_system.ec_out -> electronic_system_out;
+				
 	end Controller.impl;
 	
-	// procesor
+	-- procesor
 	
 	processor cpu
 		features
